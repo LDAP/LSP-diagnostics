@@ -1,5 +1,6 @@
 
 import re
+import functools
 from LSP.plugin.core.typing import List, Dict, Union
 
 
@@ -8,83 +9,30 @@ HIGHLIGHTS = {
     2: "warning",
     3: "info",
     4: "hint",
-}
-BOTTOM_LEFT = '└'
-UPSIDE_DOWN_T = '┴'
-MIDDLE_CROSS = '┼'
-MIDDLE_RIGHT_CENTER = '├'
-VERTICAL = '│'
-HORIZONTAL = '─'
+} # Type: Dict[int, str]
 
-SPACE = "space"
-DIAGNOSTIC = "diagnostic"
-OVERLAP = "overlap"
-BLANK = "blank"
+COLORS = {
+    "error": "redish",
+    "warning": "yellowish",
+    "info": "blueish",
+    "hint": "greenish",
+    "": ""
+} # Type: Dict[str, str]
 
-CSS_STYLE = '''
+BOTTOM_LEFT = '└' # Type: Literal['└']
+UPSIDE_DOWN_T = '┴' # Type: Literal['┴']
+MIDDLE_CROSS = '┼' # Type: Literal['┼']
+MIDDLE_RIGHT_CENTER = '├' # Type: Literal['├']
+VERTICAL = '│' # Type: Literal['│']
+HORIZONTAL = '─' # Type: Literal['─']
 
-.error {
-    color: var(--redish);
-    background-color: transparent;
-}
-.warning {
-    color: var(--orangish);
-    background-color: transparent;
-}
-.info {
-    color: var(--cyanish);
-    background-color: transparent;
-}
-.hint {
-    color: var(--greenish);
-    background-color: transparent;
-}
-'''
+SPACE = "space" # Type: Literal['space']
+DIAGNOSTIC = "diagnostic" # Type: Literal['diagnostic']
+OVERLAP = "overlap" # Type: Literal['overlap']
+BLANK = "blank" # Type: Literal['blank']
 
-minimal_diagnostic = [
-    {
-        "message": "mismatched types\nexpected `i8`, found `i32`",
-        "range": {
-            "end": {
-                "character": 12,
-                "line": 2
-            },
-            "start": {
-                "character": 12,
-                "line": 2
-            }
-        },
-        "severity": 1
-    },
-    {
-        "message": "cannot find value `w` in this scope\nnot found in this scope",
-        "range": {
-            "end": {
-                "character": 16,
-                "line": 2
-            },
-            "start": {
-                "character": 16,
-                "line": 2
-            }
-        },
-        "severity": 1
-    },
-    {
-        "message": "expected due to the type of this binding",
-        "range": {
-            "end": {
-                "character": 5,
-                "line": 2
-            },
-            "start": {
-                "character": 5,
-                "line": 2
-            }
-        },
-        "severity": 4
-    }
-]
+def sort_diagnostics(dianostics: List):
+    return sorted(dianostics, key=functools.cmp_to_key(compare))
 
 
 def compare(x, y):
@@ -124,15 +72,12 @@ def _generate_line_stacks(diagnostics: Union[List, None] = None) -> Union[Dict, 
         prev_col = diagnostic['range']['start']['character']
     return line_stacks
 
-
-def _generate_blocks(stacks):
-    blocks = []
+def _generate_blocks(stacks) -> List[List[str, str]]:
+    blocks = [] # Type: List[List[str, str]]
     for key, line in stacks.items():
         virt_lines = {"line": key, "content": []}
         # Iterate List Backward
         index = len(line)-1
-        # for item in reversed(line):
-        # print(index)
         while index > -1:
             if line[index][0] == DIAGNOSTIC:
                 diagnostic = line[index][1]
@@ -185,7 +130,7 @@ def _generate_blocks(stacks):
                     
                     if overlap:
                         center = [
-                            [ "│", HIGHLIGHTS[diagnostic['severity']] ], [ "     ", "" ]
+                            [ VERTICAL, HIGHLIGHTS[diagnostic['severity']] ], [ "     ", "" ]
                         ]
                     else:
                         center = [
@@ -217,13 +162,11 @@ def test_block_generation(content_start, content_end, data)-> str:
 
 
 def generate_region_html_content(blocks: List[List[str, str]]) -> str:
-    block = '<style>' + CSS_STYLE + '</style>'
+    block = ''
+
     for line in blocks['content']:
-        for struct in line:
-            content = struct[0].replace(" ", "&nbsp;")
-            if struct[1] != "":
-                block = '{0}<span class="{1}">{2}</span>'.format(block, struct[1] + ' left-border', content)
-            else:
-                block = '{0}<span class="space">{1}</span>'.format(block, content)
+        for text, typ in line:
+            content = text.replace(" ", "&nbsp;")
+            block = '{0}<span style="color: var({1})">{2}</span>'.format(block, COLORS[typ], content)
         block = '{0}<br>'.format(block)
-    return block + '</span>'
+    return block

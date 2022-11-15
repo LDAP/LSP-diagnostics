@@ -12,11 +12,11 @@ HIGHLIGHTS = {
 } # Type: Dict[int, str]
 
 COLORS = {
-    "error": "redish",
-    "warning": "yellowish",
-    "info": "blueish",
-    "hint": "greenish",
-    "": ""
+    "error": "var(--redish)",
+    "warning": "var(--yellowish)",
+    "info": "var(--blueish)",
+    "hint": "var(--greenish)",
+    "": "transparent",
 } # Type: Dict[str, str]
 
 BOTTOM_LEFT = '└' # Type: Literal['└']
@@ -31,8 +31,8 @@ DIAGNOSTIC = "diagnostic" # Type: Literal['diagnostic']
 OVERLAP = "overlap" # Type: Literal['overlap']
 BLANK = "blank" # Type: Literal['blank']
 
-def sort_diagnostics(dianostics: List):
-    return sorted(dianostics, key=functools.cmp_to_key(compare))
+def sort_diagnostics(diagnostics: List):
+    return sorted(diagnostics, key=functools.cmp_to_key(compare))
 
 
 def compare(x, y):
@@ -72,7 +72,8 @@ def _generate_line_stacks(diagnostics: Union[List, None] = None) -> Union[Dict, 
         prev_col = diagnostic['range']['start']['character']
     return line_stacks
 
-def _generate_blocks(stacks) -> List[List[str, str]]:
+def generate_diagnostic_blocks(diagnostics) -> List[List[str, str]]:
+    stacks = _generate_line_stacks(diagnostics)
     blocks = [] # Type: List[List[str, str]]
     for key, line in stacks.items():
         virt_lines = {"line": key, "content": []}
@@ -140,33 +141,13 @@ def _generate_blocks(stacks) -> List[List[str, str]]:
             index -= 1   
         blocks.append(virt_lines)
     return blocks
-     
-def generate_region_content(blocks: List[List[str, str]]) -> str:
-    content = ""
-    for line in blocks['content']:
-        for struct in line:
-            content = '{0}{1}'.format(content, struct[0])
-        content = '{0}\n'.format(content)
-    return content
-
-
-def test_block_generation(content_start, content_end, data)-> str:
-    content = content_start
-    for block in data:
-        for line in block['content']:
-            for struct in line:
-                content = '{0}{1}'.format(content, struct[0])
-            content = '{0}\n'.format(content)
-    content = '{0}{1}'.format(content, content_end)
-    return content
-
 
 def generate_region_html_content(blocks: List[List[str, str]]) -> str:
     block = ''
-
     for line in blocks['content']:
         for text, typ in line:
+            print(typ)
             content = text.replace(" ", "&nbsp;")
-            block = '{0}<span style="color: var({1})">{2}</span>'.format(block, COLORS[typ], content)
+            block = '{0}<span style="color: {1}">{2}</span>'.format(block, COLORS[typ], content)
         block = '{0}<br>'.format(block)
     return block

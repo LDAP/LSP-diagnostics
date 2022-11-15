@@ -1,7 +1,7 @@
 
 import re
 import functools
-from LSP.plugin.core.typing import List, Dict, Union
+from LSP.plugin.core.typing import List, Dict, Union, Literal
 
 
 HIGHLIGHTS = {
@@ -31,11 +31,11 @@ DIAGNOSTIC = "diagnostic" # Type: Literal['diagnostic']
 OVERLAP = "overlap" # Type: Literal['overlap']
 BLANK = "blank" # Type: Literal['blank']
 
-def sort_diagnostics(diagnostics: List):
+def sort_diagnostics(diagnostics: List) -> List[Dict]:
     return sorted(diagnostics, key=functools.cmp_to_key(compare))
 
 
-def compare(x, y):
+def compare(x, y) -> Literal[1, -1]:
     if x['range']['start']['line'] != y['range']['start']['line']:
         return -1 if x['range']['start']['line'] < y['range']['start']['line'] else 1
     else:
@@ -86,28 +86,29 @@ def generate_diagnostic_blocks(diagnostics) -> List[List[str, str]]:
                 left = []
                 overlap = False
                 multi = 0
-                i = 0
-                while i < index:
-                    type = line[i][0]
-                    data = line[i][1]
-                    if type == SPACE:
+                current_index = 0
+                while current_index < index:
+                    diagnostic_type = line[current_index][0]
+                    data = line[current_index][1]
+                    if diagnostic_type == SPACE:
                         if multi == 0:
                             left.append([data, ""])
                         else:
                             left.append(["-" * len(data), HIGHLIGHTS[diagnostic['severity']]])
-                    elif type == DIAGNOSTIC:
-                        if i+1 != len(line) and line[i+1][0] != OVERLAP:
+                    elif diagnostic_type == DIAGNOSTIC:
+                        # This logic doesn't make any sense at the moment
+                        if current_index+1 != len(line) and line[current_index+1][0] != OVERLAP:
                             left.append([VERTICAL, HIGHLIGHTS[data['severity']]])
                         overlap = False
-                    elif type == BLANK:
+                    elif diagnostic_type == BLANK:
                         if multi == 0:
                             left.append([BOTTOM_LEFT, HIGHLIGHTS[data['severity']]])
                         else:
                             left.append([UPSIDE_DOWN_T, HIGHLIGHTS[data['severity']]])
                         multi += 1
-                    elif type == OVERLAP:
+                    elif diagnostic_type == OVERLAP:
                         overlap = True
-                    i += 1
+                    current_index += 1
                 
                 center_symbol = ""
                 if overlap and multi > 0:
@@ -138,7 +139,6 @@ def generate_diagnostic_blocks(diagnostics) -> List[List[str, str]]:
                         center = [
                                 [ "      ", "" ]
                             ]
-                        
             index -= 1   
         blocks.append(virt_lines)
     return blocks

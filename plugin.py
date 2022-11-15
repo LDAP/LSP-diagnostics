@@ -61,11 +61,11 @@ class DiagnosticCommand(sublime_plugin.TextCommand):
         self.view.insert(edit, 0, minimal_rust)
 
         blocks = generate_diagnostic_blocks(minimal_diagnostic)
-        make_phantom = [] # Type: List[sublime.Phantom]
+        phantoms = [] # Type: List[sublime.Phantom]
         for region in blocks:
-            a = generate_region_html_content(region)
-            make_phantom.append(sublime.Phantom(sublime.Region(28, 28), a, sublime.LAYOUT_BELOW))
-        ps.update(make_phantom)
+            content = generate_region_html_content(region)
+            phantoms.append(sublime.Phantom(sublime.Region(28, 28), content, sublime.LAYOUT_BELOW))
+        ps.update(phantoms)
 
 
 def plugin_loaded():

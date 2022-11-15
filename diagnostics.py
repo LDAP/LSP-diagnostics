@@ -38,8 +38,7 @@ def sort_diagnostics(diagnostics: List) -> List[Dict]:
 def compare(x, y) -> Literal[1, -1]:
     if x['range']['start']['line'] != y['range']['start']['line']:
         return -1 if x['range']['start']['line'] < y['range']['start']['line'] else 1
-    else:
-        return -1 if x['range']['start']['character'] < y['range']['start']['character'] else 1
+    return -1 if x['range']['start']['character'] < y['range']['start']['character'] else 1
 
 def _generate_line_stacks(diagnostics: Union[List, None] = None) -> Union[Dict, None]:
     if diagnostics == None:

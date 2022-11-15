@@ -73,7 +73,8 @@ def _generate_line_stacks(diagnostics: Union[List, None] = None) -> Union[Dict, 
     return line_stacks
 
 def generate_diagnostic_blocks(diagnostics) -> List[List[str, str]]:
-    stacks = _generate_line_stacks(diagnostics)
+    sorted_diags = sort_diagnostics(diagnostics)
+    stacks = _generate_line_stacks(sorted_diags)
     blocks = [] # Type: List[List[str, str]]
     for key, line in stacks.items():
         virt_lines = {"line": key, "content": []}
@@ -146,7 +147,6 @@ def generate_region_html_content(blocks: List[List[str, str]]) -> str:
     block = ''
     for line in blocks['content']:
         for text, typ in line:
-            print(typ)
             content = text.replace(" ", "&nbsp;")
             block = '{0}<span style="color: {1}">{2}</span>'.format(block, COLORS[typ], content)
         block = '{0}<br>'.format(block)

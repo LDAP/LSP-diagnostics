@@ -54,9 +54,12 @@ minimal_diagnostic = [
 
 
 class DiagnosticCommand(sublime_plugin.TextCommand):
-	def run(self, _: sublime.Edit) -> None:
+	def run(self, edit: sublime.Edit) -> None:
 		global ps
 		ps = sublime.PhantomSet(self.view, 'lsp_lines')
+		
+		self.view.erase(edit, sublime.Region(0, len(minimal_rust)))
+		self.view.insert(edit, 0, minimal_rust)
 		sorted_l = sort_diagnostics(minimal_diagnostic)
 		stacks = _generate_line_stacks(sorted_l)
 		blocks = _generate_blocks(stacks)

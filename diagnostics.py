@@ -90,17 +90,40 @@ class DiagnosticLines:
             data = line[current_index][1]
             if diagnostic_type == SPACE:
                 if multi == 0:
+                    # left.append({'class': '', 'content': data})
                     left.append([data, ""])
                 else:
+                    # left.append({
+                    #     'class': HIGHLIGHTS[diagnostic['severity']]
+                    #     'data': "-" * len(data)
+                    #     })
                     left.append(["-" * len(data), HIGHLIGHTS[diagnostic['severity']]])
             elif diagnostic_type == DIAGNOSTIC:
                 if current_index+1 != len(line) and line[current_index+1][0] != OVERLAP:
+                    # left.append(
+                    #     {
+                    #         "class": HIGHLIGHTS[data["severity"]],
+                    #         "content": SYMBOLS['VERTICAL'],
+                    #     }
+                    # )
                     left.append([SYMBOLS['VERTICAL'], HIGHLIGHTS[data['severity']]])
                 overlap = False
             elif diagnostic_type == BLANK:
                 if multi == 0:
+                    # left.append(
+                    #     {
+                    #         "class": HIGHLIGHTS[data["severity"]],
+                    #         "content": SYMBOLS['BOTTOM_LEFT'],
+                    #     }
+                    # )
                     left.append([SYMBOLS['BOTTOM_LEFT'], HIGHLIGHTS[data['severity']]])
                 else:
+                    # left.append(
+                    #     {
+                    #         "class": HIGHLIGHTS[data["severity"]],
+                    #         "content": SYMBOLS['UPSIDE_DOWN_T'],
+                    #     }
+                    # )
                     left.append([SYMBOLS['UPSIDE_DOWN_T'], HIGHLIGHTS[data['severity']]])
                 multi += 1
             elif diagnostic_type == OVERLAP:
@@ -121,6 +144,12 @@ class DiagnosticLines:
             center_symbol = SYMBOLS['UPSIDE_DOWN_T']
         else:
             center_symbol = SYMBOLS['BOTTOM_LEFT']
+        # center = [
+        #     {
+        #         "class": HIGHLIGHTS[diagnostic['severity']],
+        #         "content": '{0}{1} '.format(center_symbol, SYMBOLS['HORIZONTAL']*4),
+        #     }
+        # ]
         center = [['{0}{1} '.format(center_symbol, SYMBOLS['HORIZONTAL']*4), HIGHLIGHTS[diagnostic['severity']]]]
         return center
 
@@ -137,11 +166,21 @@ class DiagnosticLines:
                     index = len(line) - 1 - i
                     left, overlap, multi = self._generate_left_side(line, index, diagnostic)
                     center = self._generate_center(overlap, multi, diagnostic)
+                    tooltip = diagnostic['message']
                     for msg_line in re.findall('([^\n]+)', diagnostic['message']):
+                        # virt_lines["content"].append(list(chain(left,center,[{'content': msg_line, 'class': HIGHLIGHTS[diagnostic['severity']]}])))
                         virt_lines["content"].append(list(chain(left,center,[[msg_line, HIGHLIGHTS[diagnostic['severity']]]])))
                         if overlap:
+                            # center = [
+                            #     {
+                            #         "class": "{0} {1}".format(LEFT_BORDER, HIGHLIGHTS[diagnostic.get("severity", "")]),
+                            #         "content": " "
+                            #     },
+                            #     {"class": "", "content": " "},
+                            # ]
                             center = [[ SYMBOLS['VERTICAL'], HIGHLIGHTS[diagnostic['severity']] ], ["     ", ""]]
                         else:
+                            # center = [{"class": "", "content": "  "}]
                             center = [["      ", ""]]
             blocks.append(virt_lines)
         return blocks
@@ -154,3 +193,16 @@ class DiagnosticLines:
                 block = '{0}<span style="color: {1};">{2}</span>'.format(block, COLORS[typ], content)
             block += '<br>'
         return block
+
+    def new_generate_region_html_content(self, blocks: List[List[str, str]]) -> str:
+        html = ""
+        for line in blocks["content"]:
+            css_lines = []
+            for item in line:
+                css_lines.append("<span style='color: {0}' title='{2}'>{1}</span>".format(
+                    item.get("class"),
+                    item.get("content").replace(" ", "&nbsp;"),
+                    item.get("tooltip", ""),
+                ))
+            html += "<div>{}</div>".format("".join(css_lines))
+        return html + "<div style='height: 0rem;'>&nbsp;</div>"

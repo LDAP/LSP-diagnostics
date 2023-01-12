@@ -10,38 +10,63 @@ from itertools import chain
 from LSP.plugin.core.typing import List
 
 
-HIGHLIGHTS = {
-    1: "error",
-    2: "warning",
-    3: "info",
-    4: "hint"
-} # Type: Dict[int, str]
-
-COLORS = {
-    "error": "var(--redish)",
-    "warning": "var(--yellowish)",
-    "info": "var(--blueish)",
-    "hint": "var(--greenish)",
-    "": "transparent",
-} # Type: Dict[str, str]
-
-SYMBOLS = {
-    'BOTTOM_LEFT': '└',
-    'UPSIDE_DOWN_T': '┴',
-    'MIDDLE_CROSS': '┼',
-    'MIDDLE_RIGHT_CENTER': '├',
-    'VERTICAL': '│',
-    'HORIZONTAL': '─'
-} # Type: Dict[str, str]
-
-
-SPACE = 'space' # Type: Literal['space']
-DIAGNOSTIC = 'diagnostic' # Type: Literal['diagnostic']
-OVERLAP = 'overlap' # Type: Literal['overlap']
-BLANK = 'blank' # Type: Literal['blank']
-
 class DiagnosticLines:
-    def __init__(self, diagnostics: List) -> None:
+    CSS = '''
+    .diagnostic_line_error {
+            color: var(--redish)
+        }
+    .diagnostic_line_error_background {
+            background-color: color(var(--redish) alpha(0.1))
+        }
+    .diagnostic_line_warning {
+            color: var(--yellowish)
+        }
+    diagnostic_line_warning_background {
+            background-color: color(var(--yellowish) alpha(0.1))
+        }
+    .diagnotic_line_info {
+            color: var(--bluish)
+        }
+    .diagnotic_line_info_background {
+            background-color: color(var(--bluish) alpha(0.1))
+        }
+    .diagnostic_line_hint {
+            color: var(--greenish)
+        }
+    .diagnostic_line_hint_background {
+            background-color: color(var(--greenish) alpha(0.1))
+        }
+    '''
+    HIGHLIGHTS = {
+        1: "error",
+        2: "warning",
+        3: "info",
+        4: "hint"
+    } # Type: Dict[int, str]
+
+    COLORS = {
+        "error": "var(--redish)",
+        "warning": "var(--yellowish)",
+        "info": "var(--blueish)",
+        "hint": "var(--greenish)",
+        "": "transparent",
+    } # Type: Dict[str, str]
+
+    SYMBOLS = {
+        'BOTTOM_LEFT': '└',
+        'UPSIDE_DOWN_T': '┴',
+        'MIDDLE_CROSS': '┼',
+        'MIDDLE_RIGHT_CENTER': '├',
+        'VERTICAL': '│',
+        'HORIZONTAL': '─'
+    } # Type: Dict[str, str]
+    SPACE = 'space' # Type: Literal['space']
+    DIAGNOSTIC = 'diagnostic' # Type: Literal['diagnostic']
+    OVERLAP = 'overlap' # Type: Literal['overlap']
+    BLANK = 'blank' # Type: Literal['blank']
+
+    def __init__(self, diagnostics: List, highlight_line_background: bool = False) -> None:
+        self._highlight_line_background = highlight_line_background
         self.diagnostics = self.sort_diagnostics(diagnostics)
         self.line_stacks = self._generate_line_stacks(self.diagnostics)
         self.blocks = self._generate_diagnostic_blocks(self.line_stacks)
@@ -58,20 +83,20 @@ class DiagnosticLines:
             stack = line_stacks[diagnostic['range']['start']['line']]
             if diagnostic['range']['start']['line'] != prev_lnum:
                 stack.append(
-                    [ SPACE, " " * (diagnostic['range']['start']['character'] - 1)]
+                    [ self.SPACE, " " * (diagnostic['range']['start']['character'] - 1)]
                 )
             elif diagnostic['range']['start']['character'] != prev_col:
                 spacing = (diagnostic['range']['start']['character'] - prev_col) - 1
                 stack.append(
-                    [SPACE, " " * spacing]
+                    [self.SPACE, " " * spacing]
                 )
             else:
-                stack.append([OVERLAP, diagnostic['severity']])
+                stack.append([self.OVERLAP, diagnostic['severity']])
             
             if re.match("^%s*$", diagnostic['message']):
-                stack.append([BLANK, diagnostic])
+                stack.append([self.BLANK, diagnostic])
             else:
-                stack.append([DIAGNOSTIC, diagnostic])
+                stack.append([self.DIAGNOSTIC, diagnostic])
         
             prev_lnum = diagnostic['range']['start']['line']
             prev_col = diagnostic['range']['start']['character']
@@ -88,45 +113,41 @@ class DiagnosticLines:
         while current_index < index:
             diagnostic_type = line[current_index][0]
             data = line[current_index][1]
-            if diagnostic_type == SPACE:
+            if diagnostic_type == self.SPACE:
                 if multi == 0:
-                    # left.append({'class': '', 'content': data})
-                    left.append([data, ""])
+                    left.append({'class': '', 'content': data})
+                    # left.append([data, ""])
                 else:
-                    # left.append({
-                    #     'class': HIGHLIGHTS[diagnostic['severity']]
-                    #     'data': "-" * len(data)
-                    #     })
-                    left.append(["-" * len(data), HIGHLIGHTS[diagnostic['severity']]])
-            elif diagnostic_type == DIAGNOSTIC:
-                if current_index+1 != len(line) and line[current_index+1][0] != OVERLAP:
-                    # left.append(
-                    #     {
-                    #         "class": HIGHLIGHTS[data["severity"]],
-                    #         "content": SYMBOLS['VERTICAL'],
-                    #     }
-                    # )
-                    left.append([SYMBOLS['VERTICAL'], HIGHLIGHTS[data['severity']]])
+                    left.append({
+                        'class': self.HIGHLIGHTS[diagnostic['severity']],
+                        'data': "-" * len(data)
+                        })
+            elif diagnostic_type == self.DIAGNOSTIC:
+                if current_index+1 != len(line) and line[current_index+1][0] != self.OVERLAP:
+                    left.append(
+                        {
+                            "class": self.HIGHLIGHTS[data["severity"]],
+                            "content": self.SYMBOLS['VERTICAL'],
+                        }
+                    )
                 overlap = False
-            elif diagnostic_type == BLANK:
+            elif diagnostic_type == self.BLANK:
                 if multi == 0:
-                    # left.append(
-                    #     {
-                    #         "class": HIGHLIGHTS[data["severity"]],
-                    #         "content": SYMBOLS['BOTTOM_LEFT'],
-                    #     }
-                    # )
-                    left.append([SYMBOLS['BOTTOM_LEFT'], HIGHLIGHTS[data['severity']]])
+                    left.append(
+                        {
+                            "class": self.HIGHLIGHTS[data["severity"]],
+                            "content": self.SYMBOLS['BOTTOM_LEFT'],
+                        }
+                    )
                 else:
-                    # left.append(
-                    #     {
-                    #         "class": HIGHLIGHTS[data["severity"]],
-                    #         "content": SYMBOLS['UPSIDE_DOWN_T'],
-                    #     }
-                    # )
-                    left.append([SYMBOLS['UPSIDE_DOWN_T'], HIGHLIGHTS[data['severity']]])
+                    left.append(
+                        {
+                            "class": self.HIGHLIGHTS[data["severity"]],
+                            "content": self.SYMBOLS['UPSIDE_DOWN_T'],
+                        }
+                    )
                 multi += 1
-            elif diagnostic_type == OVERLAP:
+            elif diagnostic_type == self.OVERLAP:
                 overlap = True
             current_index += 1
         return left, overlap, multi
@@ -137,20 +158,19 @@ class DiagnosticLines:
         """
         center_symbol = ""
         if overlap and multi > 0:
-            center_symbol = SYMBOLS['MIDDLE_CROSS']
+            center_symbol = self.SYMBOLS['MIDDLE_CROSS']
         elif overlap:
-            center_symbol = SYMBOLS['MIDDLE_RIGHT_CENTER']
+            center_symbol = self.SYMBOLS['MIDDLE_RIGHT_CENTER']
         elif multi > 0:
-            center_symbol = SYMBOLS['UPSIDE_DOWN_T']
+            center_symbol = self.SYMBOLS['UPSIDE_DOWN_T']
         else:
-            center_symbol = SYMBOLS['BOTTOM_LEFT']
-        # center = [
-        #     {
-        #         "class": HIGHLIGHTS[diagnostic['severity']],
-        #         "content": '{0}{1} '.format(center_symbol, SYMBOLS['HORIZONTAL']*4),
-        #     }
-        # ]
-        center = [['{0}{1} '.format(center_symbol, SYMBOLS['HORIZONTAL']*4), HIGHLIGHTS[diagnostic['severity']]]]
+            center_symbol = self.SYMBOLS['BOTTOM_LEFT']
+        center = [
+            {
+                "class": self.HIGHLIGHTS[diagnostic['severity']],
+                "content": '{0}{1} '.format(center_symbol, self.SYMBOLS['HORIZONTAL']*4),
+            }
+        ]
         return center
 
     def _generate_diagnostic_blocks(self, stacks) -> List[List[str, str]]:
@@ -161,48 +181,40 @@ class DiagnosticLines:
         for key, line in stacks.items():
             virt_lines = {"line": key, "content": []}
             for i, (diagnostic_type, data) in enumerate(reversed(line)):
-                if diagnostic_type == DIAGNOSTIC:
+                if diagnostic_type == self.DIAGNOSTIC:
                     diagnostic = data
                     index = len(line) - 1 - i
                     left, overlap, multi = self._generate_left_side(line, index, diagnostic)
                     center = self._generate_center(overlap, multi, diagnostic)
                     tooltip = diagnostic['message']
                     for msg_line in re.findall('([^\n]+)', diagnostic['message']):
-                        # virt_lines["content"].append(list(chain(left,center,[{'content': msg_line, 'class': HIGHLIGHTS[diagnostic['severity']]}])))
-                        virt_lines["content"].append(list(chain(left,center,[[msg_line, HIGHLIGHTS[diagnostic['severity']]]])))
+                        virt_lines["content"].append(list(chain(left,center,[{'content': msg_line, 'class': self.HIGHLIGHTS[diagnostic['severity']]}])))
                         if overlap:
-                            # center = [
-                            #     {
-                            #         "class": "{0} {1}".format(LEFT_BORDER, HIGHLIGHTS[diagnostic.get("severity", "")]),
-                            #         "content": " "
-                            #     },
-                            #     {"class": "", "content": " "},
-                            # ]
-                            center = [[ SYMBOLS['VERTICAL'], HIGHLIGHTS[diagnostic['severity']] ], ["     ", ""]]
+                            center = [
+                                {
+                                    "class": self.HIGHLIGHTS[diagnostic['severity']],
+                                    "content": self.SYMBOLS['VERTICAL']
+                                },
+                                {"class": "", "content": "     "},
+                            ]
                         else:
-                            # center = [{"class": "", "content": "  "}]
-                            center = [["      ", ""]]
+                            center = [{"class": "", "content": "      "}]
             blocks.append(virt_lines)
         return blocks
 
-    def generate_region_html_content(self, blocks: List[List[str, str]]) -> str:
-        block = ''
-        for line in blocks['content']:
-            for text, typ in line:
-                content = text.replace(" ", "&nbsp;")
-                block = '{0}<span style="color: {1};">{2}</span>'.format(block, COLORS[typ], content)
-            block += '<br>'
-        return block
-
     def new_generate_region_html_content(self, blocks: List[List[str, str]]) -> str:
-        html = ""
+        html = '<style>{}</style>'.format(self.CSS)
         for line in blocks["content"]:
-            css_lines = []
             for item in line:
-                css_lines.append("<span style='color: {0}' title='{2}'>{1}</span>".format(
-                    item.get("class"),
+                css_class = 'diagnostic_line_{0}'.format(item.get('class'))
+                if self._highlight_line_background:
+                    css_class += ' diagnostic_line_{0}_background'.format(item.get('class'))
+                html = "{0}<span class='{1}' title='{3}'>{2}</span>".format(
+                    html,
+                    css_class,
                     item.get("content").replace(" ", "&nbsp;"),
                     item.get("tooltip", ""),
-                ))
-            html += "<div>{}</div>".format("".join(css_lines))
-        return html + "<div style='height: 0rem;'>&nbsp;</div>"
+                )
+            html += '<br>'
+            
+        return html

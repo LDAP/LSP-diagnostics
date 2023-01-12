@@ -88,10 +88,10 @@ class DiagnosticCommand(sublime_plugin.TextCommand):
 
         self.view.erase(edit, sublime.Region(0, len(minimal_rust)))
         self.view.insert(edit, 0, minimal_rust)
-        diagnostic_lines = DiagnosticLines(minimal_diagnostic)
+        diagnostic_lines = DiagnosticLines(minimal_diagnostic, True)
         phantoms = [] # Type: List[sublime.Phantom]
         for region in diagnostic_lines.blocks:
-            content = diagnostic_lines.generate_region_html_content(region)
+            content = diagnostic_lines.new_generate_region_html_content(region)
             phantoms.append(sublime.Phantom(sublime.Region(28, 28), content, sublime.LAYOUT_BELOW))
         ps.update(phantoms)
 

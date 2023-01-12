@@ -2,7 +2,7 @@
 import sublime
 import sublime_plugin
 
-from .diagnostics import DiagnosticLines
+from .lib.diagnostic_lines import DiagnosticLines
 
 minimal_rust = '''fn foo4(x: &[i8], y: i32) {
     x[0] = y + w;

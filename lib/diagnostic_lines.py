@@ -7,7 +7,6 @@
 
 import re
 from itertools import chain
-from LSP.plugin.core.typing import List
 
 
 class DiagnosticLines:
@@ -65,16 +64,18 @@ class DiagnosticLines:
     OVERLAP = 'overlap' # Type: Literal['overlap']
     BLANK = 'blank' # Type: Literal['blank']
 
-    def __init__(self, diagnostics: List, highlight_line_background: bool = False) -> None:
+    def __init__(self, diagnostics, highlight_line_background: bool = False) -> None:
         self._highlight_line_background = highlight_line_background
+        # LSP contains Diagnostics as [(DIAGNOSTIC, SUBLIME)]
+        # Which means the Sort isn't working in real world
         self.diagnostics = self.sort_diagnostics(diagnostics)
         self.line_stacks = self._generate_line_stacks(self.diagnostics)
         self.blocks = self._generate_diagnostic_blocks(self.line_stacks)
 
-    def sort_diagnostics(self, diagnostics: List) -> List:
+    def sort_diagnostics(self, diagnostics):
         return sorted(diagnostics, key=lambda x: (x['range']['start']['line'], x['range']['start']['character']))
 
-    def _generate_line_stacks(self, diagnostics: List) -> dict:
+    def _generate_line_stacks(self, diagnostics) -> dict:
         line_stacks = {}
         prev_lnum = -1
         prev_col = 0
@@ -173,7 +174,7 @@ class DiagnosticLines:
         ]
         return center
 
-    def _generate_diagnostic_blocks(self, stacks) -> List[List[str, str]]:
+    def _generate_diagnostic_blocks(self, stacks):
         """
         Generates the diagnostic blocks from the given stacks
         """
@@ -202,7 +203,7 @@ class DiagnosticLines:
             blocks.append(virt_lines)
         return blocks
 
-    def new_generate_region_html_content(self, blocks: List[List[str, str]]) -> str:
+    def new_generate_region_html_content(self, blocks) -> str:
         html = '<style>{}</style>'.format(self.CSS)
         for line in blocks["content"]:
             for item in line:
@@ -218,3 +219,6 @@ class DiagnosticLines:
             html += '<br>'
             
         return html
+
+    def generate_phantoms(self, diagnostics) -> list:
+

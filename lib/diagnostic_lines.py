@@ -35,25 +35,25 @@ class DiagnosticLines:
     CSS += body
     CSS += '''
     .diagnostic_line_error {
-            color: var(--redish)
+            color: color(var(--redish) alpha(0.5))
         }
     .diagnostic_line_error_background {
             background-color: color(var(--redish) alpha(0.1))
         }
     .diagnostic_line_warning {
-            color: var(--yellowish)
+            color: color(var(--yellowish) alpha(0.5))
         }
     diagnostic_line_warning_background {
             background-color: color(var(--yellowish) alpha(0.1))
         }
     .diagnostic_line_info {
-            color: var(--bluish)
+            color: color(var(--bluish) alpha(0.5))
         }
     .diagnostic_line_info_background {
             background-color: color(var(--bluish) alpha(0.1))
         }
     .diagnostic_line_hint {
-            color: var(--greenish)
+            color: color(var(--greenish) alpha(0.5))
         }
     .diagnostic_line_hint_background {
             background-color: color(var(--greenish) alpha(0.1))
@@ -92,14 +92,19 @@ class DiagnosticLines:
         self._highlight_line_background = highlight_line_background
         # LSP contains Diagnostics as [(DIAGNOSTIC, SUBLIME)]
         # Which means the Sort isn't working in real world
-        self.diagnostics = self.sort_diagnostics(diagnostics)
+        self.preprocessed_diagnostics = self._preprocess_diagnostic(diagnostics)
+        self.diagnostics = self.sort_diagnostics(self.preprocessed_diagnostics)
         self.line_stacks = self._generate_line_stacks(self.diagnostics)
         self.blocks = self._generate_diagnostic_blocks(self.line_stacks)
+
+    def _preprocess_diagnostic(self, diagnostics):
+        return [diagnostic[0] for diagnostic in diagnostics]
 
     def draw(self) -> None:
         global ps
         ps = sublime.PhantomSet(self._view, 'lsp_lines')
         phantoms = [] # Type: List[sublime.Phantom]
+        print(self.preprocessed_diagnostics)
         for block in self.blocks:
             content = self.new_generate_region_html_content(block)
             phantoms.append(sublime.Phantom(block['region'], content, sublime.LAYOUT_BELOW))
@@ -122,7 +127,6 @@ class DiagnosticLines:
             line_stacks.setdefault(current_line, {'region': None, 'stack': []})
             if line_stacks[current_line]['region'] is None:
                 region = range_to_region(diagnostic['range'], self._view)
-                region.a -= 1
                 region.b = region.a
                 line_stacks[current_line]['region'] = region
             # Get the current stack for the current line

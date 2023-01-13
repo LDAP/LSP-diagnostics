@@ -9,6 +9,8 @@ import re
 import sublime
 from itertools import chain
 
+from LSP.plugin.core.views import range_to_region
+
 
 
 class DiagnosticLines:
@@ -86,13 +88,13 @@ class DiagnosticLines:
     BLANK = 'blank' # Type: Literal['blank']
 
     def __init__(self, view: sublime.View, diagnostics, highlight_line_background: bool = False) -> None:
+        self._view = view
         self._highlight_line_background = highlight_line_background
         # LSP contains Diagnostics as [(DIAGNOSTIC, SUBLIME)]
         # Which means the Sort isn't working in real world
         self.diagnostics = self.sort_diagnostics(diagnostics)
         self.line_stacks = self._generate_line_stacks(self.diagnostics)
         self.blocks = self._generate_diagnostic_blocks(self.line_stacks)
-        self._view = view
 
     def draw(self) -> None:
         global ps
@@ -100,7 +102,7 @@ class DiagnosticLines:
         phantoms = [] # Type: List[sublime.Phantom]
         for block in self.blocks:
             content = self.new_generate_region_html_content(block)
-            phantoms.append(sublime.Phantom(sublime.Region(32, 32), content, sublime.LAYOUT_BELOW))
+            phantoms.append(sublime.Phantom(block['region'], content, sublime.LAYOUT_BELOW))
         ps.update(phantoms)
 
     def sort_diagnostics(self, diagnostics):
@@ -114,20 +116,27 @@ class DiagnosticLines:
         prev_col = 0
         # Iterate over the diagnostics
         for _, diagnostic in enumerate(diagnostics):
+            current_line = diagnostic['range']['start']['line']
+            current_col = diagnostic['range']['start']['character'] 
             # Create an empty list for the current line if it doesn't already exist in the dictionary
-            line_stacks.setdefault(diagnostic['range']['start']['line'], [])
+            line_stacks.setdefault(current_line, {'region': None, 'stack': []})
+            if line_stacks[current_line]['region'] is None:
+                region = range_to_region(diagnostic['range'], self._view)
+                region.a -= 1
+                region.b = region.a
+                line_stacks[current_line]['region'] = region
             # Get the current stack for the current line
-            stack = line_stacks[diagnostic['range']['start']['line']]
+            stack = line_stacks[current_line]['stack']
             # Check if the diagnostic is on a new line
-            if diagnostic['range']['start']['line'] != prev_lnum:
+            if current_line != prev_lnum:
                 # If so, add an empty space to the stack
                 stack.append(
                     [ self.SPACE, ""]
                 )
-            elif diagnostic['range']['start']['character'] != prev_col:
+            elif current_col != prev_col:
                 # If not on a new line but on a new column, add spacing to the stack
                 # Calculate the spacing by subtracting the previous column from the current column, minus 1 (to account for 0-based index)
-                spacing = (diagnostic['range']['start']['character'] - prev_col) - 1
+                spacing = (current_col - prev_col) - 1
                 stack.append(
                     [self.SPACE, " " * spacing]
                 )
@@ -144,8 +153,8 @@ class DiagnosticLines:
                 stack.append([self.DIAGNOSTIC, diagnostic])
         
             # Update the previous line number and column for the next iteration
-            prev_lnum = diagnostic['range']['start']['line']
-            prev_col = diagnostic['range']['start']['character']
+            prev_lnum = current_line
+            prev_col = current_col
         return line_stacks
 
     def _generate_left_side(self, line, index, diagnostic):
@@ -222,15 +231,14 @@ class DiagnosticLines:
         """
         Generates the diagnostic blocks from the given stacks
         """
-        blocks = [] 
-        print(stacks)
+        blocks = []
         for key, line in stacks.items():
-            virt_lines = {"line": key, "content": []}
-            for i, (diagnostic_type, data) in enumerate(reversed(line)):
+            virt_lines = {"line": key, "content": [], 'region': line['region']}
+            for i, (diagnostic_type, data) in enumerate(reversed(line['stack'])):
                 if diagnostic_type == self.DIAGNOSTIC:
                     diagnostic = data
-                    index = len(line) - 1 - i
-                    left, overlap, multi = self._generate_left_side(line, index, diagnostic)
+                    index = len(line['stack']) - 1 - i
+                    left, overlap, multi = self._generate_left_side(line['stack'], index, diagnostic)
                     center = self._generate_center(overlap, multi, diagnostic)
                     for msg_line in re.findall('([^\n]+)', diagnostic['message']):
                         virt_lines["content"].append(list(chain(left,center,[{'content': msg_line, 'class': self.HIGHLIGHTS[diagnostic['severity']]}])))
@@ -245,7 +253,6 @@ class DiagnosticLines:
                         else:
                             center = [{"class": "", "content": "      "}]
             blocks.append(virt_lines)
-            print(virt_lines)
         return blocks
 
     def new_generate_region_html_content(self, blocks) -> str:

@@ -1,55 +1,84 @@
+
 import sublime
 import sublime_plugin
 
-from .diagnostics import generate_region_html_content, generate_diagnostic_blocks
+from .lib.diagnostic_lines import DiagnosticLines
 
 minimal_rust = '''fn foo4(x: &[i8], y: i32) {
     x[0] = y + w;
 }'''
 
 minimal_diagnostic = [
-    {
-        "message": "mismatched types\nexpected `i8`, found `i32`",
-        "range": {
-            "end": {
-                "character": 12,
-                "line": 2
+    ({
+            "message": "Overlap testing with\nmultiple lines",
+            "range": {
+                "end": {
+                    "character": 12,
+                    "line": 1
+                },
+                "start": {
+                    "character": 12,
+                    "line": 1
+                }
             },
-            "start": {
-                "character": 12,
-                "line": 2
-            }
-        },
-        "severity": 1
-    },
-    {
-        "message": "cannot find value `w` in this scope\nnot found in this scope",
-        "range": {
-            "end": {
-                "character": 16,
-                "line": 2
+            "severity": 1
+        }, ''),
+    ({
+            "message": "mismatched types\nexpected `i8`, found `i32`",
+            "range": {
+                "end": {
+                    "character": 12,
+                    "line": 1
+                },
+                "start": {
+                    "character": 12,
+                    "line": 1
+                }
             },
-            "start": {
-                "character": 16,
-                "line": 2
-            }
-        },
-        "severity": 1
-    },
-    {
-        "message": "expected due to the type of this binding",
-        "range": {
-            "end": {
-                "character": 5,
-                "line": 2
+            "severity": 1
+        }, ''),
+    ({
+            "message": "cannot find value `w` in this scope\nnot found in this scope\ncheck passed variable for correctness",
+            "range": {
+                "end": {
+                    "character": 16,
+                    "line": 1
+                },
+                "start": {
+                    "character": 16,
+                    "line": 1
+                }
             },
-            "start": {
-                "character": 5,
-                "line": 2
-            }
-        },
-        "severity": 4
-    }
+            "severity": 1
+        }, ''),
+    ({
+            "message": "expected due to the type of this binding",
+            "range": {
+                "end": {
+                    "character": 5,
+                    "line": 1
+                },
+                "start": {
+                    "character": 5,
+                    "line": 1
+                }
+            },
+            "severity": 4
+        }, ''),
+    ({
+            "message": "unexpected `}` closing brace",
+            "range": {
+                "end": {
+                    "character": 2,
+                    "line": 2
+                },
+                "start": {
+                    "character": 2,
+                    "line": 2
+                }
+            },
+            "severity": 1
+        }, '')
 ]
 
 class DiagnosticCommand(sublime_plugin.TextCommand):
@@ -59,13 +88,8 @@ class DiagnosticCommand(sublime_plugin.TextCommand):
 
         self.view.erase(edit, sublime.Region(0, len(minimal_rust)))
         self.view.insert(edit, 0, minimal_rust)
-
-        blocks = generate_diagnostic_blocks(minimal_diagnostic)
-        phantoms = [] # Type: List[sublime.Phantom]
-        for region in blocks:
-            content = generate_region_html_content(region)
-            phantoms.append(sublime.Phantom(sublime.Region(28, 28), content, sublime.LAYOUT_BELOW))
-        ps.update(phantoms)
+        diagnostic_lines = DiagnosticLines(self.view, minimal_diagnostic, True)
+        diagnostic_lines.draw()
 
 
 def plugin_loaded():

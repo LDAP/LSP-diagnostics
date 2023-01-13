@@ -38,20 +38,6 @@ minimal_diagnostic = [
         "severity": 1
     },
     {
-        "message": "",
-        "range": {
-            "end": {
-                "character": 12,
-                "line": 2
-            },
-            "start": {
-                "character": 12,
-                "line": 2
-            }
-        },
-        "severity": 1
-    },
-    {
         "message": "cannot find value `w` in this scope\nnot found in this scope\ncheck passed variable for correctness",
         "range": {
             "end": {
@@ -78,6 +64,20 @@ minimal_diagnostic = [
             }
         },
         "severity": 4
+    },
+    {
+        "message": "unexpected `}` closing brace",
+        "range": {
+            "end": {
+                "character": 1,
+                "line": 3
+            },
+            "start": {
+                "character": 1,
+                "line": 3
+            }
+        },
+        "severity": 1
     }
 ]
 
@@ -88,11 +88,11 @@ class DiagnosticCommand(sublime_plugin.TextCommand):
 
         self.view.erase(edit, sublime.Region(0, len(minimal_rust)))
         self.view.insert(edit, 0, minimal_rust)
-        diagnostic_lines = DiagnosticLines(minimal_diagnostic, True)
+        diagnostic_lines = DiagnosticLines(self.view, minimal_diagnostic, True)
         phantoms = [] # Type: List[sublime.Phantom]
         for region in diagnostic_lines.blocks:
             content = diagnostic_lines.new_generate_region_html_content(region)
-            phantoms.append(sublime.Phantom(sublime.Region(28, 28), content, sublime.LAYOUT_BELOW))
+            phantoms.append(sublime.Phantom(sublime.Region(32, 32), content, sublime.LAYOUT_BELOW))
         ps.update(phantoms)
 
 
